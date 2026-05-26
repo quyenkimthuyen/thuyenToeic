@@ -1,0 +1,684 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f766e" />
+    <meta name="description" content="Frontend-only vocabulary app using editable JSON data." />
+    <title>LexiRise Vocabulary</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #020617;
+        --panel: rgba(15, 23, 42, 0.86);
+        --panel-strong: #0f172a;
+        --text: #e5f3ff;
+        --muted: #94a3b8;
+        --line: rgba(148, 163, 184, 0.22);
+        --primary: #14b8a6;
+        --accent: #818cf8;
+        --danger: #fb7185;
+        --success: #22c55e;
+        --shadow: 0 22px 60px rgba(0, 0, 0, 0.28);
+      }
+
+      :root.light {
+        color-scheme: light;
+        --bg: #ecfeff;
+        --panel: rgba(255, 255, 255, 0.9);
+        --panel-strong: #ffffff;
+        --text: #0f172a;
+        --muted: #64748b;
+        --line: rgba(15, 23, 42, 0.12);
+        --primary: #0d9488;
+        --accent: #4f46e5;
+        --danger: #e11d48;
+        --success: #16a34a;
+        --shadow: 0 22px 60px rgba(15, 23, 42, 0.12);
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top left, rgba(20, 184, 166, 0.28), transparent 32rem),
+          radial-gradient(circle at top right, rgba(129, 140, 248, 0.24), transparent 30rem),
+          var(--bg);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      button, input { font: inherit; }
+      button { cursor: pointer; }
+      h1, h2, h3, p { margin: 0; }
+      h1 { font-size: 1.15rem; line-height: 1.2; }
+      h2 { margin-bottom: 0.9rem; font-size: 1.45rem; }
+      h3 { font-size: 1.05rem; }
+
+      .app { width: min(100%, 760px); min-height: 100vh; margin: 0 auto; padding: 1rem 1rem calc(5.75rem + env(safe-area-inset-bottom)); }
+      .header { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: -1rem -1rem 1rem; padding: 1rem; background: linear-gradient(to bottom, var(--bg), transparent); backdrop-filter: blur(12px); }
+      .brand { display: flex; align-items: center; gap: 0.75rem; }
+      .logo { display: grid; width: 2.6rem; height: 2.6rem; place-items: center; border-radius: 1rem; background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; font-weight: 800; box-shadow: var(--shadow); }
+      .muted { color: var(--muted); }
+      .small { font-size: 0.86rem; }
+      .hidden { display: none !important; }
+      .stack { display: grid; gap: 1rem; }
+      .row { display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; }
+      .between { justify-content: space-between; }
+      .panel { border: 1px solid var(--line); border-radius: 1.35rem; padding: 1rem; background: var(--panel); box-shadow: var(--shadow); backdrop-filter: blur(18px); }
+      .pill, .icon-button, .tab, .nav-button, .button { border: 1px solid var(--line); background: var(--panel-strong); color: var(--text); }
+      .pill { border-radius: 999px; padding: 0.45rem 0.75rem; }
+      .icon-button { width: 3rem; height: 2.55rem; border-radius: 999px; }
+      .button, .tab, .nav-button { border-radius: 999px; padding: 0.75rem 0.85rem; transition: transform 0.15s ease; }
+      .button:hover, .tab:hover, .nav-button:hover { transform: translateY(-1px); }
+      .active, .primary { border-color: transparent; background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; }
+      .danger { color: white; border-color: transparent; background: linear-gradient(135deg, #f43f5e, #fb7185); }
+      .success { color: white; border-color: transparent; background: linear-gradient(135deg, #16a34a, #22c55e); }
+      .toolbar { display: grid; gap: 0.75rem; margin-bottom: 1rem; }
+      .search { width: 100%; min-height: 2.9rem; border: 1px solid var(--line); border-radius: 1rem; padding: 0 1rem; background: var(--panel-strong); color: var(--text); outline: none; }
+      .tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.45rem; }
+      .tabs.four { grid-template-columns: repeat(4, 1fr); }
+      .word-title { font-size: 2rem; font-weight: 800; letter-spacing: -0.04em; }
+      .meaning { font-size: 1.2rem; font-weight: 700; color: var(--primary); }
+      .example { border-left: 3px solid var(--primary); padding-left: 0.75rem; color: var(--muted); }
+      .badge { border-radius: 999px; padding: 0.25rem 0.55rem; background: rgba(20, 184, 166, 0.15); color: var(--primary); font-size: 0.78rem; }
+      .progress-track { overflow: hidden; height: 0.65rem; border-radius: 999px; background: rgba(148, 163, 184, 0.22); }
+      .progress-fill { height: 100%; width: 0%; border-radius: inherit; background: linear-gradient(90deg, var(--primary), var(--accent)); transition: width 0.25s ease; }
+      .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+      .stat { padding: 1rem; border-radius: 1rem; background: var(--panel-strong); border: 1px solid var(--line); }
+      .stat strong { display: block; margin-top: 0.25rem; font-size: 1.5rem; }
+      .quiz-options, .typing-form { display: grid; gap: 0.65rem; }
+      .option { width: 100%; text-align: left; border-radius: 1rem; }
+      .feedback { padding: 0.8rem; border-radius: 1rem; background: rgba(20, 184, 166, 0.12); color: var(--primary); }
+      .empty { padding: 2rem 1rem; text-align: center; }
+      .nav { position: fixed; left: 50%; bottom: max(0.85rem, env(safe-area-inset-bottom)); z-index: 10; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; width: min(calc(100% - 2rem), 720px); padding: 0.55rem; border: 1px solid var(--line); border-radius: 1.35rem; background: var(--panel); box-shadow: var(--shadow); transform: translateX(-50%); backdrop-filter: blur(20px); }
+      @media (max-width: 520px) { .app { padding-inline: 0.8rem; } .header { margin-inline: -0.8rem; padding-inline: 0.8rem; } .stats-grid, .tabs.four { grid-template-columns: 1fr 1fr; } .word-title { font-size: 1.7rem; } .pill { display: none; } }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="header">
+        <div class="brand">
+          <div class="logo">L</div>
+          <div>
+            <h1>LexiRise</h1>
+            <p class="muted small">JSON vocabulary app</p>
+          </div>
+        </div>
+        <div class="row">
+          <span class="pill" id="headerStats">0 / 0 known</span>
+          <button class="icon-button" id="themeButton" type="button" aria-label="Toggle theme">Dark</button>
+        </div>
+      </header>
+
+      <main>
+        <section id="learnPage" class="page stack"></section>
+        <section id="quizPage" class="page stack hidden"></section>
+        <section id="statsPage" class="page stack hidden"></section>
+      </main>
+    </div>
+
+    <nav class="nav" aria-label="Main navigation">
+      <button class="nav-button active" type="button" data-page="learn">Learn</button>
+      <button class="nav-button" type="button" data-page="quiz">Quiz</button>
+      <button class="nav-button" type="button" data-page="stats">Stats</button>
+    </nav>
+
+    <script>
+      const STORAGE_KEY = 'lexirise-vocabulary-store';
+      const LEARNING_LIMIT = 10;
+      const REVIEW_INTERVAL_HOURS = [4, 12, 24, 72, 168, 336, 720];
+      const DATA_TOPIC_FILES = ['all-topics.json'];
+      let seedWords = [];
+
+      const state = {
+        words: [],
+        filter: 'learning',
+        topicFilter: 'all',
+        searchQuery: '',
+        theme: 'dark',
+        page: 'learn',
+        quizMode: 'meaning',
+        currentQuestion: null,
+        quizResults: [],
+        quizStartedAt: null,
+        feedback: '',
+        revealed: {},
+        wordOrderIds: [],
+      };
+
+      function escapeHtml(value) {
+        return String(value ?? '')
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll('"', '&quot;')
+          .replaceAll("'", '&#039;');
+      }
+
+      function normalizeWords(words, topicName = 'toeic words') {
+        if (!Array.isArray(words)) throw new Error('Vocabulary JSON must be an array of words.');
+        return words.map((word, index) => {
+          const text = String(word.word || '').trim();
+          const meaning = String(word.meaning_vi || '').trim();
+          if (!text || !meaning) throw new Error(`Word ${index + 1} needs both word and meaning_vi.`);
+          return {
+            id: String(word.id || `word-${String(index + 1).padStart(3, '0')}`),
+            word: text,
+            ipa_us: String(word.ipa_us || ''),
+            ipa_uk: String(word.ipa_uk || ''),
+            meaning_vi: meaning,
+            topic: String(word.topic || topicName).trim() || topicName,
+            example: String(word.example || ''),
+            audio_us: String(word.audio_us || ''),
+            status: ['new', 'learning', 'known'].includes(word.status) ? word.status : 'new',
+            reviewLevel: Number(word.reviewLevel || 0),
+            reviewCount: Number(word.reviewCount || 0),
+            lastReviewedAt: word.lastReviewedAt,
+            nextReviewAt: word.nextReviewAt,
+            createdAt: Number(word.createdAt || Date.now()),
+          };
+        });
+      }
+
+      function loadState() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+          const savedState = saved?.state || saved;
+          if (!savedState) return;
+          if (Array.isArray(savedState.words)) {
+            seedWords = normalizeWords(savedState.words);
+            state.words = refillLearningQueue(seedWords.map((word) => ({ ...word })));
+          }
+          if (Array.isArray(savedState.wordOrderIds)) state.wordOrderIds = savedState.wordOrderIds;
+          if (savedState.filter) state.filter = savedState.filter;
+          if (savedState.topicFilter) state.topicFilter = savedState.topicFilter;
+          if (typeof savedState.searchQuery === 'string') state.searchQuery = savedState.searchQuery;
+          if (savedState.theme === 'light' || savedState.theme === 'dark') state.theme = savedState.theme;
+          if (savedState.quizMode) state.quizMode = savedState.quizMode;
+        } catch (error) {
+          console.warn('Could not load saved progress.', error);
+        }
+      }
+
+      function saveState() {
+        ensureWordOrder();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          state: {
+            words: state.words,
+            wordOrderIds: state.wordOrderIds,
+            filter: state.filter,
+            topicFilter: state.topicFilter,
+            searchQuery: state.searchQuery,
+            theme: state.theme,
+            quizMode: state.quizMode,
+          },
+          version: 2,
+        }));
+      }
+
+        function importTopics(topicGroups) {
+          const normalized = topicGroups.flatMap((group) => normalizeWords(group.words, group.topic));
+          const progressById = new Map(state.words.map((word) => [word.id, word]));
+          seedWords = normalized;
+          // Preserve saved progress for each word; default to 'learning' for new words
+          state.words = normalized.map((word) => {
+            const merged = mergeWordProgress(word, progressById.get(word.id));
+            // If there is no saved status or it is still 'new', start as 'learning'
+            if (!merged.status || merged.status === 'new') {
+              merged.status = 'learning';
+            }
+            return merged;
+          });
+          ensureWordOrder();
+          if (!getTopics(state.words).includes(state.topicFilter)) state.topicFilter = 'all';
+          state.currentQuestion = null;
+          state.quizResults = [];
+          state.feedback = `Loaded ${state.words.length} words.`;
+          saveState();
+          render();
+        }
+
+      
+
+      async function loadTopicFiles() {
+        // If the page is opened via file://, use the bundled in-memory data.
+        if (location.protocol === 'file:' && typeof window.embeddedData === 'object') {
+          return Object.entries(window.embeddedData).map(([topic, words]) => ({ topic, words }));
+        }
+        // When served over HTTP (e.g., Live Server), load the consolidated all-topics.json file.
+        const file = DATA_TOPIC_FILES[0];
+        const response = await fetch(`data/${file}`, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`Cannot load data/${file}`);
+        const data = await response.json();
+        // Support both array of groups [{topic, words}] or object mapping {topic: words}
+        if (Array.isArray(data)) return data;
+        return Object.entries(data).map(([topic, words]) => ({ topic, words }));
+      }
+
+      // Legacy function retained for potential future use; not used when loading consolidated data.
+      async function loadTopicFile(file, topicOverride) {
+        const safeFile = String(file || '').trim();
+        if (!safeFile || safeFile.includes('..') || !safeFile.endsWith('.json')) throw new Error('Invalid topic file path.');
+        const topicResponse = await fetch(`data/${safeFile}`, { cache: 'no-store' });
+        if (!topicResponse.ok) throw new Error(`Cannot load data/${safeFile}`);
+        return { topic: String(topicOverride || topicFromFileName(safeFile)).trim(), words: await topicResponse.json() };
+      }
+
+      function topicFromFileName(file) {
+        return file.replace(/\.json$/i, '');
+      }
+
+      function prettyTopic(topic) {
+        // Convert hyphens/underscores to spaces and capitalize each word
+        return topic
+          .replace(/[-_]/g, ' ')
+          .replace(/\b\w/g, (c) => c.toUpperCase());
+      }
+
+      function mergeWordProgress(word, progress) {
+        if (!progress) return { ...word };
+        return {
+          ...word,
+          status: progress.status || word.status,
+          reviewLevel: Number(progress.reviewLevel || 0),
+          reviewCount: Number(progress.reviewCount || 0),
+          lastReviewedAt: progress.lastReviewedAt,
+          nextReviewAt: progress.nextReviewAt,
+        };
+      }
+
+      async function initializeApp() {
+        loadState();
+
+        if (location.protocol !== 'file:') {
+          try {
+            importTopics(await loadTopicFiles());
+            return;
+          } catch (error) {
+            state.feedback = 'Cannot load topic files from data/. Please start the Live Server (e.g., via VS Code) and open the served URL.';
+            console.warn('Cannot load dynamic topic data.', error);
+            render();
+          }
+          return;
+        }
+
+        if (!state.words.length) {
+          state.feedback = 'Cannot load topic files from file://. Please start the Live Server (e.g., via VS Code) and open the served URL.';
+        }
+        render();
+      }
+
+      async function resetSavedState() {
+        localStorage.removeItem(STORAGE_KEY);
+        state.words = [];
+        state.wordOrderIds = [];
+        state.filter = 'learning';
+        state.topicFilter = 'all';
+        state.searchQuery = '';
+        state.quizMode = 'meaning';
+        state.currentQuestion = null;
+        state.quizResults = [];
+        state.quizStartedAt = null;
+        state.revealed = {};
+        state.feedback = 'Saved state reset.';
+        await initializeApp();
+      }
+
+      function refillLearningQueue(words) {
+        let slots = LEARNING_LIMIT - words.filter((word) => word.status === 'learning').length;
+        if (slots <= 0) return words;
+        return words.map((word) => {
+          if (slots <= 0 || word.status !== 'new') return word;
+          slots -= 1;
+          return { ...word, status: 'learning' };
+        });
+      }
+
+      function applyReviewOutcome(word, outcome) {
+        const now = Date.now();
+        const direction = outcome === 'remembered' ? 1 : -1;
+        const nextLevel = Math.max(0, Math.min(REVIEW_INTERVAL_HOURS.length - 1, (word.reviewLevel || 0) + direction));
+        return {
+          ...word,
+          status: outcome === 'remembered' ? 'known' : 'learning',
+          reviewLevel: nextLevel,
+          reviewCount: (word.reviewCount || 0) + 1,
+          lastReviewedAt: now,
+          nextReviewAt: now + REVIEW_INTERVAL_HOURS[nextLevel] * 60 * 60 * 1000,
+        };
+      }
+
+      function getStats() {
+        const words = getTopicWords();
+        const total = words.length;
+        const known = words.filter((word) => word.status === 'known').length;
+        const learning = words.filter((word) => word.status === 'learning').length;
+        return { total, known, learning, completion: total ? Math.round((known / total) * 100) : 0 };
+      }
+
+      function getTopics(words = state.words) {
+        return [...new Set(words.map((word) => word.topic).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+      }
+
+      function getTopicWords() {
+        return state.topicFilter === 'all' ? state.words : state.words.filter((word) => word.topic === state.topicFilter);
+      }
+
+      function ensureWordOrder() {
+        const validIds = new Set(state.words.map((word) => word.id));
+        const existingIds = state.wordOrderIds.filter((id) => validIds.has(id));
+        const existingSet = new Set(existingIds);
+        const missingIds = state.words.map((word) => word.id).filter((id) => !existingSet.has(id));
+        state.wordOrderIds = [...existingIds, ...shuffle(missingIds)];
+      }
+
+      function reshuffleWordOrder() {
+        state.wordOrderIds = shuffle(state.words.map((word) => word.id));
+      }
+
+      function orderWords(words) {
+        ensureWordOrder();
+        const orderIndex = new Map(state.wordOrderIds.map((id, index) => [id, index]));
+        return [...words].sort((a, b) => (orderIndex.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (orderIndex.get(b.id) ?? Number.MAX_SAFE_INTEGER));
+      }
+
+      function getVisibleWords() {
+        const query = state.searchQuery.trim().toLowerCase();
+        const topicWords = getTopicWords();
+        const filtered = topicWords.filter((word) => {
+          const matchesFilter = state.filter === 'all' || word.status === state.filter;
+          const matchesQuery = !query || word.word.toLowerCase().includes(query) || word.meaning_vi.toLowerCase().includes(query) || word.ipa_us.toLowerCase().includes(query) || word.topic.toLowerCase().includes(query);
+          return matchesFilter && matchesQuery;
+        });
+        const ordered = orderWords(filtered);
+        return state.filter === 'learning' && !query ? ordered.slice(0, LEARNING_LIMIT) : ordered;
+      }
+
+      function speak(text) {
+        if (!('speechSynthesis' in window)) return;
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US';
+        utterance.rate = 0.86;
+        const voices = window.speechSynthesis.getVoices();
+        const voice = voices.find((item) => item.lang === 'en-US') || voices.find((item) => item.lang.startsWith('en'));
+        if (voice) utterance.voice = voice;
+        window.speechSynthesis.speak(utterance);
+      }
+
+      function pronounceWord(word) {
+        if (!word) return;
+        if (word.audio_us) {
+          const audio = new Audio(word.audio_us);
+          audio.play().catch(() => speak(word.word));
+          return;
+        }
+        speak(word.word);
+      }
+
+      function shuffle(items) {
+        return [...items].sort(() => Math.random() - 0.5);
+      }
+
+      function createQuizQuestion(mode) {
+        const topicWords = getTopicWords();
+        const knownOrLearning = topicWords.filter((word) => word.status !== 'new');
+        const pool = knownOrLearning.length >= 4 ? knownOrLearning : topicWords;
+        if (pool.length < 4) return null;
+        const word = shuffle(pool)[0];
+        const distractors = shuffle(pool.filter((item) => item.id !== word.id)).slice(0, 3);
+        const options = mode === 'word' ? shuffle([word.word, ...distractors.map((item) => item.word)]) : shuffle([word.meaning_vi, ...distractors.map((item) => item.meaning_vi)]);
+        const prompts = { meaning: word.word, word: word.meaning_vi, listening: word.word, typing: word.meaning_vi };
+        return { id: `${word.id}-${mode}-${Date.now()}`, mode, prompt: prompts[mode], answer: mode === 'word' ? word.word : word.meaning_vi, options, word };
+      }
+
+      function startQuiz(mode = state.quizMode) {
+        state.quizMode = mode;
+        state.quizResults = [];
+        state.quizStartedAt = Date.now();
+        state.currentQuestion = createQuizQuestion(mode);
+        state.feedback = state.currentQuestion ? '' : 'Load at least 4 words to start a quiz.';
+        saveState();
+        render();
+      }
+
+      function answerQuestion(answer) {
+        if (!state.currentQuestion) return;
+        const correct = answer.trim().toLowerCase() === state.currentQuestion.answer.trim().toLowerCase();
+        state.quizResults.push({ questionId: state.currentQuestion.id, selectedAnswer: answer, isCorrect: correct, answeredAt: Date.now() });
+        state.feedback = correct ? 'Correct answer.' : `Not quite. Answer: ${state.currentQuestion.answer}`;
+        state.currentQuestion = createQuizQuestion(state.quizMode);
+        render();
+      }
+
+      function getQuizStats() {
+        const total = state.quizResults.length;
+        const correct = state.quizResults.filter((item) => item.isCorrect).length;
+        let streak = 0;
+        for (let index = state.quizResults.length - 1; index >= 0; index -= 1) {
+          if (!state.quizResults[index].isCorrect) break;
+          streak += 1;
+        }
+        const elapsed = state.quizStartedAt ? Math.floor((Date.now() - state.quizStartedAt) / 1000) : 0;
+        return { total, correct, streak, elapsed, accuracy: total ? Math.round((correct / total) * 100) : 0 };
+      }
+
+      function render() {
+        document.documentElement.classList.toggle('light', state.theme === 'light');
+        document.getElementById('themeButton').textContent = state.theme === 'dark' ? 'Dark' : 'Light';
+        const stats = getStats();
+        document.getElementById('headerStats').textContent = `${stats.known} / ${stats.total} known`;
+        document.querySelectorAll('.page').forEach((page) => page.classList.add('hidden'));
+        document.getElementById(`${state.page}Page`).classList.remove('hidden');
+        document.querySelectorAll('.nav-button').forEach((button) => button.classList.toggle('active', button.dataset.page === state.page));
+        renderLearn();
+        renderQuiz();
+        renderStats();
+      }
+
+      function renderLearn() {
+        const words = getVisibleWords();
+        const topics = getTopics();
+        const topicTotal = getTopicWords().length;
+        document.getElementById('learnPage').innerHTML = `
+          <div class="panel stack">
+            <div>
+              <h2>Learn Vocabulary</h2>
+            </div>
+            <div class="toolbar">
+              <label class="muted small" for="topicSelect">Topic</label>
+              <select class="search" id="topicSelect" aria-label="Choose topic">
+                <option value="all"${state.topicFilter === 'all' ? ' selected' : ''}>All topics</option>
+                ${topics.map((topic) => `<option value="${escapeHtml(topic)}"${state.topicFilter === topic ? ' selected' : ''}>${escapeHtml(prettyTopic(topic))}</option>`).join('')}
+              </select>
+              <label class="muted small" for="searchInput">Search</label>
+              <input class="search" id="searchInput" type="search" placeholder="Search English, Vietnamese, or IPA" value="${escapeHtml(state.searchQuery)}" />
+              <p class="muted small">Status</p>
+              <div class="tabs">
+                ${filterButton('learning', 'Learning')}
+                ${filterButton('known', 'Known')}
+                ${filterButton('all', 'All Status')}
+              </div>
+            </div>
+            <p class="muted small">Showing ${words.length} of ${topicTotal} word${topicTotal === 1 ? '' : 's'}${state.topicFilter === 'all' ? '' : ` in ${escapeHtml(state.topicFilter)}`}</p>
+          </div>
+          ${words.length ? words.map(renderWordCard).join('') : renderEmptyWords(topicTotal)}
+        `;
+        document.getElementById('searchInput').addEventListener('input', (event) => {
+          const cursorPosition = event.target.selectionStart;
+          state.searchQuery = event.target.value;
+          saveState();
+          renderLearn();
+          const searchInput = document.getElementById('searchInput');
+          searchInput.focus();
+          searchInput.setSelectionRange(cursorPosition, cursorPosition);
+        });
+      }
+
+      function filterButton(filter, label) {
+        return `<button class="tab ${state.filter === filter ? 'active' : ''}" type="button" data-filter="${filter}">${label}</button>`;
+      }
+
+      function renderEmptyWords(topicTotal) {
+        if (!state.words.length) {
+          return '<div class="panel empty"><h3>No words loaded</h3><p class="muted">Open this app through a simple static server so it can read topic files from data/ automatically.</p></div>';
+        }
+        if (!topicTotal) {
+          return '<div class="panel empty"><h3>No words in this topic</h3><p class="muted">Choose All topics or load a JSON file with this topic.</p></div>';
+        }
+        return '<div class="panel empty"><h3>No words match this view</h3><p class="muted">Try All Status or clear the search text.</p></div>';
+      }
+
+      function renderWordCard(word) {
+        const revealed = state.revealed[word.id];
+        return `
+          <article class="panel stack">
+            <div class="row between">
+              <span class="badge">${escapeHtml(word.topic)} - ${escapeHtml(word.status)} - level ${word.reviewLevel || 0}${word.audio_us ? ' - audio' : ''}</span>
+            </div>
+            <div>
+              <div class="word-title">${escapeHtml(word.word)}</div>
+              <p class="muted">${escapeHtml(word.ipa_us || '')}</p>
+            </div>
+            <div>${revealed ? `<p class="meaning">${escapeHtml(word.meaning_vi)}</p>` : '<p class="muted">Meaning is hidden</p>'}</div>
+            ${word.example ? `<p class="example">${escapeHtml(word.example)}</p>` : ''}
+            <div class="row">
+              <button class="button" type="button" data-reveal="${escapeHtml(word.id)}">${revealed ? 'Hide meaning' : 'Reveal meaning'}</button>
+              <button class="icon-button" type="button" data-pronounce="${escapeHtml(word.id)}" aria-label="Pronounce ${escapeHtml(word.word)}" title="Pronounce">Play</button>
+              ${word.status !== 'learning' ? `<button class="button danger" type="button" data-forgot="${escapeHtml(word.id)}">Forgot</button>` : ''}
+              ${word.status !== 'known' ? `<button class="button success" type="button" data-remembered="${escapeHtml(word.id)}">Remembered</button>` : ''}
+            </div>
+          </article>
+        `;
+      }
+
+      function renderQuiz() {
+        const quizStats = getQuizStats();
+        const question = state.currentQuestion;
+        document.getElementById('quizPage').innerHTML = `
+          <div class="panel stack">
+            <div class="row between">
+              <div>
+                <h2>Quiz Practice</h2>
+                <p class="muted">${quizStats.correct}/${quizStats.total} correct - ${quizStats.streak} streak - ${quizStats.elapsed}s</p>
+              </div>
+              <button class="button" type="button" id="resetQuiz">Reset</button>
+            </div>
+            <div class="progress-track"><div class="progress-fill" style="width:${quizStats.accuracy}%"></div></div>
+            <div class="tabs four">
+              ${modeButton('meaning', 'Meaning')}
+              ${modeButton('word', 'English')}
+              ${modeButton('listening', 'Listen')}
+              ${modeButton('typing', 'Typing')}
+            </div>
+          </div>
+          <div class="panel stack">
+            ${question ? renderQuestion(question) : '<div class="empty"><h3>Ready to practice?</h3><p class="muted">Choose a mode and start a quiz.</p></div>'}
+            ${state.feedback ? `<p class="feedback">${escapeHtml(state.feedback)}</p>` : ''}
+            <button class="button primary" type="button" id="startQuiz">${question ? 'Restart quiz' : 'Start quiz'}</button>
+          </div>
+        `;
+      }
+
+      function modeButton(mode, label) {
+        return `<button class="tab ${state.quizMode === mode ? 'active' : ''}" type="button" data-mode="${mode}">${label}</button>`;
+      }
+
+      function renderQuestion(question) {
+        if (question.mode === 'listening') {
+          return `<div class="stack"><p class="muted">Listen and choose the meaning.</p><button class="button primary" type="button" data-pronounce-current="true">Play word</button><div class="quiz-options">${question.options.map(renderOption).join('')}</div></div>`;
+        }
+        if (question.mode === 'typing') {
+          return `<form class="typing-form" id="typingForm"><p class="muted">Type the Vietnamese meaning for:</p><h3>${escapeHtml(question.prompt)}</h3><input class="search" id="typingAnswer" type="text" autocomplete="off" placeholder="Your answer" /><button class="button primary" type="submit">Submit answer</button></form>`;
+        }
+        return `<div class="stack"><p class="muted">Choose the correct answer for:</p><h3>${escapeHtml(question.prompt)}</h3><div class="quiz-options">${question.options.map(renderOption).join('')}</div></div>`;
+      }
+
+      function renderOption(option) {
+        return `<button class="button option" type="button" data-answer="${escapeHtml(option)}">${escapeHtml(option)}</button>`;
+      }
+
+      function renderStats() {
+        const stats = getStats();
+        const topicWords = getTopicWords();
+        const knownWords = topicWords.filter((word) => word.status === 'known').slice(-8).reverse();
+        const learningWords = topicWords.filter((word) => word.status === 'learning').slice(0, LEARNING_LIMIT);
+        const scheduled = topicWords.filter((word) => word.nextReviewAt).length;
+        document.getElementById('statsPage').innerHTML = `
+          <div class="panel stack">
+            <h2>Progress</h2>
+            <p class="muted small">Topic: ${state.topicFilter === 'all' ? 'All topics' : escapeHtml(state.topicFilter)}</p>
+            <div class="stats-grid">
+              ${statCard('Total Words', stats.total)}
+              ${statCard('Known', stats.known)}
+              ${statCard('Learning', stats.learning)}
+              ${statCard('Scheduled', scheduled)}
+            </div>
+            <div><div class="row between"><span>Completion</span><strong>${stats.completion}%</strong></div><div class="progress-track"><div class="progress-fill" style="width:${stats.completion}%"></div></div></div>
+            <button class="button danger" type="button" id="resetSavedState">Reset saved state</button>
+          </div>
+          <div class="panel stack"><h3>Recently Known</h3>${knownWords.length ? knownWords.map((word) => `<p>${escapeHtml(word.word)} <span class="muted">${escapeHtml(word.meaning_vi)}</span></p>`).join('') : '<p class="muted">No known words yet.</p>'}</div>
+          <div class="panel stack"><h3>Learning Queue</h3>${learningWords.length ? learningWords.map((word) => `<p>${escapeHtml(word.word)} <span class="muted">${escapeHtml(word.meaning_vi)}</span></p>`).join('') : '<p class="muted">No learning words loaded.</p>'}</div>
+        `;
+      }
+
+      function statCard(label, value) {
+        return `<div class="stat"><span class="muted">${label}</span><strong>${value}</strong></div>`;
+      }
+
+      document.addEventListener('click', (event) => {
+        const target = event.target.closest('button');
+        if (!target) return;
+        if (target.dataset.page) state.page = target.dataset.page;
+        if (target.dataset.filter) { state.filter = target.dataset.filter; saveState(); }
+        if (target.dataset.mode) startQuiz(target.dataset.mode);
+        if (target.dataset.pronounce) pronounceWord(state.words.find((word) => word.id === target.dataset.pronounce));
+        if (target.dataset.pronounceCurrent) pronounceWord(state.currentQuestion?.word);
+        if (target.dataset.reveal) state.revealed[target.dataset.reveal] = !state.revealed[target.dataset.reveal];
+        if (target.dataset.forgot) {
+          state.words = state.words.map((word) => word.id === target.dataset.forgot ? applyReviewOutcome(word, 'forgot') : word);
+          reshuffleWordOrder();
+          saveState();
+        }
+        if (target.dataset.remembered) {
+          state.words = refillLearningQueue(state.words.map((word) => word.id === target.dataset.remembered ? applyReviewOutcome(word, 'remembered') : word));
+          reshuffleWordOrder();
+          saveState();
+        }
+        if (target.dataset.answer) answerQuestion(target.dataset.answer);
+        if (target.id === 'themeButton') { state.theme = state.theme === 'dark' ? 'light' : 'dark'; saveState(); }
+        if (target.id === 'startQuiz') startQuiz(state.quizMode);
+        if (target.id === 'resetQuiz') { state.currentQuestion = null; state.quizResults = []; state.quizStartedAt = null; state.feedback = ''; }
+        if (target.id === 'resetSavedState') {
+          if (window.confirm('Reset all saved progress and reload fresh data?')) resetSavedState();
+          return;
+        }
+        render();
+      });
+
+      document.addEventListener('change', async (event) => {
+        if (event.target.id === 'topicSelect') {
+          state.topicFilter = event.target.value;
+          state.filter = 'all';
+          state.currentQuestion = null;
+          state.quizResults = [];
+          saveState();
+          render();
+          return;
+        }
+      });
+
+      document.addEventListener('submit', (event) => {
+        if (event.target.id !== 'typingForm') return;
+        event.preventDefault();
+        answerQuestion(document.getElementById('typingAnswer').value);
+      });
+
+      initializeApp();
+      setInterval(() => {
+        if (state.page === 'quiz' && state.quizStartedAt) renderQuiz();
+      }, 1000);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,177 @@
+# LexiRise App Function Summary
+
+LexiRise is a standalone, frontend-only vocabulary app. The app UI runs from `index.html`, while vocabulary words are loaded dynamically from JSON files in the `data/` folder. It does not need Vite, React, npm, backend API, authentication, or a database.
+
+## How To Use
+
+1. Open the folder through a simple static server so the browser can read `data/*.json`.
+2. Study, quiz, and track progress.
+
+The app has no visible JSON load/export buttons. Browser progress is saved in `localStorage`.
+
+Optional start command:
+
+```bash
+npm start
+```
+
+## Topic JSON Files
+
+Words are stored in `data/`, with one JSON file per topic. The app automatically loads the known topic files from that folder, and can discover extra `.json` files when the static server exposes directory listing.
+
+The topic name is the filename without `.json`, so `data/toeic-airport.json` becomes topic `toeic-airport`.
+
+Current topics:
+
+- `toeic-airport`
+- `toeic-all`
+- `toeic-banking`
+- `toeic-business`
+- `toeic-finance`
+- `toeic-hotel`
+- `toeic-marketing`
+- `toeic-meetings`
+- `toeic-office`
+- `toeic-technology`
+- `toeic-travel`
+
+Topic file example:
+
+Example:
+
+```json
+{
+  "id": "word-001",
+  "word": "abandon",
+  "ipa_us": "/əˈbæn.dən/",
+  "ipa_uk": "/əˈbæn.dən/",
+  "meaning_vi": "từ bỏ",
+  "topic": "toeic-airport",
+  "example": "She refused to abandon her dream.",
+  "audio_us": "https://api.dictionaryapi.dev/media/pronunciations/en/abandon-us.mp3",
+  "status": "new",
+  "reviewLevel": 0,
+  "reviewCount": 0,
+  "createdAt": 1771142156378
+}
+```
+
+Important fields:
+
+- `word`: English word.
+- `meaning_vi`: Vietnamese meaning.
+- `topic`: learning topic; if omitted, the app uses the JSON filename.
+- `audio_us`: optional audio path or internet URL, such as `audio/word.mp3` or a public `.mp3` URL.
+- `example`: optional example sentence.
+- `ipa_us`: optional American pronunciation text.
+
+Put local audio files in the `audio/` folder or use public internet audio URLs in topic JSON files under `data/`. If `audio_us` is empty or cannot play, the app falls back to browser text-to-speech.
+
+To add more topics, create another JSON file in `data/`.
+
+## Main Functions
+
+### Learn Vocabulary
+
+- Shows a vocabulary learning screen.
+- Keeps JSON source/import instructions out of the main learning GUI.
+- Lets the user filter vocabulary by topic.
+- Limits the active learning queue to 10 words.
+- Shows words in a stable randomized order instead of JSON order.
+- Displays English word, American IPA, Vietnamese meaning, and example sentence when available.
+- Lets the user reveal or hide the meaning.
+- Plays `audio_us` from a compact pronunciation button in the card action row, otherwise uses browser speech synthesis.
+- Hides `Forgot` on learning words and hides `Remembered` on known words.
+- Lets the user mark eligible words as `Remembered` or `Forgot`, then reshuffles the word order.
+- Refills the learning queue with new words after remembered words become known.
+
+### Search And Filter
+
+- Searches by English word, Vietnamese meaning, or IPA.
+- Searches by topic name.
+- Keeps focus in the search box while typing.
+- Filters words by topic, including `toeic words`.
+- Filters words by status: `Learning`, `Known`, or `All Status`.
+- Saves the selected filter and search query locally.
+
+### Quiz Practice
+
+Quiz modes:
+
+- Meaning: shows the English word and asks for the Vietnamese meaning.
+- English: shows the Vietnamese meaning and asks for the English word.
+- Listen: plays `audio_us` or text-to-speech and asks for the Vietnamese meaning.
+- Typing: shows the Vietnamese meaning and asks the user to type the answer.
+
+Quiz behavior:
+
+- Generates random questions from learning or known words when possible.
+- Uses the selected topic as the quiz question pool.
+- Uses four multiple-choice answers for non-typing modes.
+- Compares answers case-insensitively after trimming whitespace.
+- Tracks total answers, correct answers, streak, elapsed time, and accuracy.
+- Supports quiz reset.
+
+### Progress And Stats
+
+- Shows total word count.
+- Shows known word count.
+- Shows learning word count.
+- Shows scheduled review count.
+- Shows completion percentage with a progress bar.
+- Shows recently known words.
+- Shows the current learning queue.
+- Shows stats for the selected topic or all topics.
+- Provides a reset button to clear saved browser progress and reload fresh data from `data/`.
+
+## Data And Storage
+
+Editable source data:
+
+- one JSON file per topic in `data/`
+
+Optional audio files:
+
+- `audio/`
+
+Browser storage key:
+
+- `lexirise-vocabulary-store`
+
+Persisted data:
+
+- vocabulary words
+- Vietnamese meanings
+- topics
+- audio paths
+- review progress
+- selected filter
+- selected topic filter
+- search query
+- selected theme
+- selected quiz mode
+
+Not persisted:
+
+- current quiz question
+- current quiz results
+- quiz timer
+- temporary card reveal state
+
+## Current File Structure
+
+- `index.html`: standalone app UI and logic.
+- `data/*.json`: topic vocabulary files.
+- `data/README.md`: topic data instructions.
+- `audio/`: optional local audio files.
+- `APP_FUNCTION_SUMMARY.md`: this function summary.
+- `package.json`: optional metadata only.
+- `.cursor/rules/`: project rules for future AI changes.
+
+## Limitations
+
+- Browsers do not allow reliable JSON loading from `file://`; use a simple static server.
+- Extra topic files beyond the known checked-in JSON files require a server that exposes directory listing, or the file must be added to the app's fallback topic list.
+- There is no backend sync between devices.
+- Progress is stored only in the current browser unless exported.
+- Audio playback requires valid local paths or public internet URLs in `audio_us`.
