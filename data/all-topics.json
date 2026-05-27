@@ -254,7 +254,7 @@
                           {
                               "id":  "toeic-0005",
                               "word":  "achieve",
-                              "ipa_us":  "/achieve/",
+                              "ipa_us":  "/əˈtʃiːv/",
                               "meaning_vi":  "đạt được",
                               "example":  "The company plans to achieve its services next year.",
                               "status":  "new",
@@ -267,7 +267,7 @@
                           {
                               "id":  "toeic-0015",
                               "word":  "appointment",
-                              "ipa_us":  "/appointment/",
+                              "ipa_us":  "/əˈpɔɪntmənt/",
                               "meaning_vi":  "cuộc hẹn",
                               "example":  "She will appointment the customers tomorrow.",
                               "status":  "new",
@@ -280,7 +280,7 @@
                           {
                               "id":  "toeic-0025",
                               "word":  "calculate",
-                              "ipa_us":  "/calculate/",
+                              "ipa_us":  "/ˈkælkjuleɪt/",
                               "meaning_vi":  "tính toán",
                               "example":  "The company plans to calculate its services next year.",
                               "status":  "new",
@@ -477,7 +477,7 @@
                            {
                                "id":  "toeic-0073",
                                "word":  "project",
-                               "ipa_us":  "/project/",
+                               "ipa_us":  "/ˈprɑːdʒekt/",
                                "meaning_vi":  "dự án",
                                "example":  "Our team must project the project on time.",
                                "status":  "new",
@@ -503,7 +503,7 @@
                            {
                                "id":  "toeic-0093",
                                "word":  "survey",
-                               "ipa_us":  "/survey/",
+                               "ipa_us":  "/ˈsɜːrveɪ/",
                                "meaning_vi":  "khảo sát",
                                "example":  "The company plans to survey its services next year.",
                                "status":  "new",
@@ -518,7 +518,7 @@
                         {
                             "id":  "toeic-0008",
                             "word":  "adequate",
-                            "ipa_us":  "/adequate/",
+                            "ipa_us":  "/ˈædɪkwət/",
                             "meaning_vi":  "đầy đủ",
                             "example":  "We need to adequate the report before the meeting.",
                             "status":  "new",
@@ -531,7 +531,7 @@
                         {
                             "id":  "toeic-0018",
                             "word":  "assignment",
-                            "ipa_us":  "/assignment/",
+                            "ipa_us":  "/əˈsaɪnmənt/",
                             "meaning_vi":  "nhiệm vụ",
                             "example":  "She will assignment the customers tomorrow.",
                             "status":  "new",
@@ -609,7 +609,7 @@
                         {
                             "id":  "toeic-0078",
                             "word":  "refund",
-                            "ipa_us":  "/refund/",
+                            "ipa_us":  "/ˈriːfʌnd/",
                             "meaning_vi":  "hoàn tiền",
                             "example":  "We need to refund the report before the meeting.",
                             "status":  "new",
@@ -635,7 +635,7 @@
                         {
                             "id":  "toeic-0098",
                             "word":  "warehouse",
-                            "ipa_us":  "/warehouse/",
+                            "ipa_us":  "/ˈwerhaʊs/",
                             "meaning_vi":  "nhà kho",
                             "example":  "We need to warehouse the report before the meeting.",
                             "status":  "new",
@@ -782,7 +782,7 @@
                          {
                              "id":  "toeic-0007",
                              "word":  "adapt",
-                             "ipa_us":  "/adapt/",
+                             "ipa_us":  "/əˈdæpt/",
                              "meaning_vi":  "thích nghi",
                              "example":  "Our team must adapt the project on time.",
                              "status":  "new",
@@ -795,7 +795,7 @@
                          {
                              "id":  "toeic-0017",
                              "word":  "arrangement",
-                             "ipa_us":  "/arrangement/",
+                             "ipa_us":  "/əˈreɪndʒmənt/",
                              "meaning_vi":  "sắp xếp",
                              "example":  "Our team must arrangement the project on time.",
                              "status":  "new",
@@ -899,7 +899,7 @@
                          {
                              "id":  "toeic-0097",
                              "word":  "update",
-                             "ipa_us":  "/update/",
+                             "ipa_us":  "/ˌʌpˈdeɪt/",
                              "meaning_vi":  "cập nhật",
                              "example":  "She will update the customers tomorrow.",
                              "status":  "new",
@@ -940,7 +940,7 @@
                              {
                                  "id":  "toeic-0030",
                                  "word":  "catalog",
-                                 "ipa_us":  "/catalog/",
+                                 "ipa_us":  "/ˈkætəlɔːɡ/",
                                  "meaning_vi":  "danh mục",
                                  "example":  "We need to catalog the report before the meeting.",
                                  "status":  "new",
@@ -1005,7 +1005,7 @@
                              {
                                  "id":  "toeic-0080",
                                  "word":  "reliable",
-                                 "ipa_us":  "/reliable/",
+                                 "ipa_us":  "/rɪˈlaɪəbl/",
                                  "meaning_vi":  "đáng tin cậy",
                                  "example":  "We need to reliable the report before the meeting.",
                                  "status":  "new",
@@ -1018,7 +1018,7 @@
                              {
                                  "id":  "toeic-0090",
                                  "word":  "strategy",
-                                 "ipa_us":  "/strategy/",
+                                 "ipa_us":  "/ˈstrætədʒi/",
                                  "meaning_vi":  "chiến lược",
                                  "example":  "We need to strategy the report before the meeting.",
                                  "status":  "new",
@@ -1150,7 +1150,7 @@
                            {
                                "id":  "toeic-0091",
                                "word":  "supplier",
-                               "ipa_us":  "/supplier/",
+                               "ipa_us":  "/səˈplaɪər/",
                                "meaning_vi":  "nhà cung cấp",
                                "example":  "The company plans to supplier its services next year.",
                                "status":  "new",
@@ -1230,7 +1230,7 @@
                             {
                                 "id":  "toeic-0054",
                                 "word":  "increase",
-                                "ipa_us":  "/increase/",
+                                "ipa_us":  "/ɪnˈkriːs/",
                                 "meaning_vi":  "tăng",
                                 "example":  "We need to increase the report before the meeting.",
                                 "status":  "new",
@@ -1243,7 +1243,7 @@
                             {
                                 "id":  "toeic-0064",
                                 "word":  "objective",
-                                "ipa_us":  "/objective/",
+                                "ipa_us":  "/əbˈdʒektɪv/",
                                 "meaning_vi":  "mục tiêu",
                                 "example":  "The company plans to objective its services next year.",
                                 "status":  "new",
@@ -1256,7 +1256,7 @@
                             {
                                 "id":  "toeic-0074",
                                 "word":  "proposal",
-                                "ipa_us":  "/proposal/",
+                                "ipa_us":  "/prəˈpoʊzl/",
                                 "meaning_vi":  "đề xuất",
                                 "example":  "She will proposal the customers tomorrow.",
                                 "status":  "new",
@@ -1269,7 +1269,7 @@
                             {
                                 "id":  "toeic-0084",
                                 "word":  "reserve",
-                                "ipa_us":  "/reserve/",
+                                "ipa_us":  "/rɪˈzɜːrv/",
                                 "meaning_vi":  "đặt trước",
                                 "example":  "She will reserve the customers tomorrow.",
                                 "status":  "new",
@@ -1282,7 +1282,7 @@
                             {
                                 "id":  "toeic-0094",
                                 "word":  "target",
-                                "ipa_us":  "/target/",
+                                "ipa_us":  "/ˈtɑːrɡɪt/",
                                 "meaning_vi":  "mục tiêu",
                                 "example":  "Our team must target the project on time.",
                                 "status":  "new",
