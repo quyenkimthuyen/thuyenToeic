@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0f766e" />
     <meta name="description" content="Frontend-only vocabulary app using editable JSON data." />
-    <title>LexiRise Vocabulary</title>
+    <title>TOEIC Vocab Smart App</title>
     <style>
       :root {
         color-scheme: dark;
@@ -89,7 +89,14 @@
       .stat strong { display: block; margin-top: 0.25rem; font-size: 1.5rem; }
       .quiz-options, .typing-form { display: grid; gap: 0.65rem; }
       .option { width: 100%; text-align: left; border-radius: 1rem; }
-      .feedback { padding: 0.8rem; border-radius: 1rem; background: rgba(20, 184, 166, 0.12); color: var(--primary); }
+      .option:disabled { opacity: 0.45; cursor: not-allowed; }
+      .option.success:disabled { opacity: 1 !important; background: linear-gradient(135deg, #16a34a, #22c55e) !important; color: white !important; border-color: transparent !important; }
+      .option.danger:disabled { opacity: 1 !important; background: linear-gradient(135deg, #f43f5e, #fb7185) !important; color: white !important; border-color: transparent !important; }
+      .feedback { padding: 0.8rem; border-radius: 1rem; background: var(--panel-strong); border: 1px solid var(--line); }
+      .success-input, .success-input:disabled { opacity: 1 !important; border: 1.5px solid var(--success) !important; background: rgba(34, 197, 94, 0.15) !important; color: var(--text) !important; -webkit-text-fill-color: var(--text) !important; }
+      .danger-input, .danger-input:disabled { opacity: 1 !important; border: 1.5px solid var(--danger) !important; background: rgba(251, 113, 133, 0.15) !important; color: var(--text) !important; -webkit-text-fill-color: var(--text) !important; }
+      .success-text { color: var(--success); font-weight: bold; }
+      .danger-text { color: var(--danger); font-weight: bold; }
       .empty { padding: 2rem 1rem; text-align: center; }
       .nav { position: fixed; left: 50%; bottom: max(0.85rem, env(safe-area-inset-bottom)); z-index: 10; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; width: min(calc(100% - 2rem), 720px); padding: 0.55rem; border: 1px solid var(--line); border-radius: 1.35rem; background: var(--panel); box-shadow: var(--shadow); transform: translateX(-50%); backdrop-filter: blur(20px); }
       @media (max-width: 520px) { .app { padding-inline: 0.8rem; } .header { margin-inline: -0.8rem; padding-inline: 0.8rem; } .stats-grid, .tabs.four { grid-template-columns: 1fr 1fr; } .word-title { font-size: 1.7rem; } .pill { display: none; } }
@@ -99,10 +106,10 @@
     <div class="app">
       <header class="header">
         <div class="brand">
-          <div class="logo">L</div>
+          <div class="logo">T</div>
           <div>
-            <h1>LexiRise</h1>
-            <p class="muted small">JSON vocabulary app</p>
+            <h1>TOEIC Vocab</h1>
+            <p class="muted small">Smart App</p>
           </div>
         </div>
         <div class="row">
@@ -125,7 +132,7 @@
     </nav>
 
     <script>
-      const STORAGE_KEY = 'lexirise-vocabulary-store';
+      const STORAGE_KEY = 'lexirise-vocabulary-store-v3';
       const LEARNING_LIMIT = 10;
       const REVIEW_INTERVAL_HOURS = [4, 12, 24, 72, 168, 336, 720];
       const DATA_TOPIC_FILES = ['all-topics.json'];
@@ -142,7 +149,7 @@
         currentQuestion: null,
         quizResults: [],
         quizStartedAt: null,
-        feedback: '',
+        currentAnswer: null,
         revealed: {},
         wordOrderIds: [],
       };
@@ -166,7 +173,6 @@
             id: String(word.id || `word-${String(index + 1).padStart(3, '0')}`),
             word: text,
             ipa_us: String(word.ipa_us || ''),
-            ipa_uk: String(word.ipa_uk || ''),
             meaning_vi: meaning,
             topic: String(word.topic || topicName).trim() || topicName,
             example: String(word.example || ''),
@@ -421,6 +427,17 @@
         return [...items].sort(() => Math.random() - 0.5);
       }
 
+      function getQuizHint(answer) {
+        if (!answer) return '';
+        const trimmed = answer.trim();
+        if (trimmed.length <= 2) {
+          return `Starts with: "${trimmed[0]}"`;
+        }
+        const firstTwo = trimmed.slice(0, 2);
+        const underscores = '_ '.repeat(trimmed.length - 2).trim();
+        return `Hint: ${firstTwo} ${underscores} (${trimmed.length} letters)`;
+      }
+
       function createQuizQuestion(mode) {
         const topicWords = getTopicWords();
         const knownOrLearning = topicWords.filter((word) => word.status !== 'new');
@@ -430,7 +447,7 @@
         const distractors = shuffle(pool.filter((item) => item.id !== word.id)).slice(0, 3);
         const options = mode === 'word' ? shuffle([word.word, ...distractors.map((item) => item.word)]) : shuffle([word.meaning_vi, ...distractors.map((item) => item.meaning_vi)]);
         const prompts = { meaning: word.word, word: word.meaning_vi, listening: word.word, typing: word.meaning_vi };
-        return { id: `${word.id}-${mode}-${Date.now()}`, mode, prompt: prompts[mode], answer: mode === 'word' ? word.word : word.meaning_vi, options, word };
+        return { id: `${word.id}-${mode}-${Date.now()}`, mode, prompt: prompts[mode], answer: (mode === 'word' || mode === 'typing') ? word.word : word.meaning_vi, options, word };
       }
 
       function startQuiz(mode = state.quizMode) {
@@ -438,6 +455,7 @@
         state.quizResults = [];
         state.quizStartedAt = Date.now();
         state.currentQuestion = createQuizQuestion(mode);
+        state.currentAnswer = null;
         state.feedback = state.currentQuestion ? '' : 'Load at least 4 words to start a quiz.';
         saveState();
         render();
@@ -447,7 +465,16 @@
         if (!state.currentQuestion) return;
         const correct = answer.trim().toLowerCase() === state.currentQuestion.answer.trim().toLowerCase();
         state.quizResults.push({ questionId: state.currentQuestion.id, selectedAnswer: answer, isCorrect: correct, answeredAt: Date.now() });
-        state.feedback = correct ? 'Correct answer.' : `Not quite. Answer: ${state.currentQuestion.answer}`;
+        state.currentAnswer = { text: answer, isCorrect: correct };
+        state.feedback = correct 
+          ? `<span class="success-text">✓ Correct!</span>` 
+          : `<span class="danger-text">✗ Incorrect. Correct answer: <strong>${escapeHtml(state.currentQuestion.answer)}</strong></span>`;
+        render();
+      }
+
+      function nextQuestion() {
+        state.currentAnswer = null;
+        state.feedback = '';
         state.currentQuestion = createQuizQuestion(state.quizMode);
         render();
       }
@@ -475,6 +502,11 @@
         renderLearn();
         renderQuiz();
         renderStats();
+
+        if (state.page === 'quiz' && state.quizMode === 'typing') {
+          const input = document.getElementById('typingAnswer');
+          if (input) input.focus();
+        }
       }
 
       function renderLearn() {
@@ -561,7 +593,7 @@
             <div class="row between">
               <div>
                 <h2>Quiz Practice</h2>
-                <p class="muted">${quizStats.correct}/${quizStats.total} correct - ${quizStats.streak} streak - ${quizStats.elapsed}s</p>
+                <p class="muted">${quizStats.correct}/${quizStats.total} correct - ${quizStats.streak} streak - <span id="quizElapsed">${quizStats.elapsed}</span>s</p>
               </div>
               <button class="button" type="button" id="resetQuiz">Reset</button>
             </div>
@@ -575,8 +607,9 @@
           </div>
           <div class="panel stack">
             ${question ? renderQuestion(question) : '<div class="empty"><h3>Ready to practice?</h3><p class="muted">Choose a mode and start a quiz.</p></div>'}
-            ${state.feedback ? `<p class="feedback">${escapeHtml(state.feedback)}</p>` : ''}
-            <button class="button primary" type="button" id="startQuiz">${question ? 'Restart quiz' : 'Start quiz'}</button>
+            ${state.feedback ? `<p class="feedback">${state.feedback}</p>` : ''}
+            ${state.currentAnswer && question.mode !== 'typing' ? '<button class="button primary" type="button" id="nextQuestion">Next question</button>' : ''}
+            <button class="button" type="button" id="startQuiz">${question ? 'Restart quiz' : 'Start quiz'}</button>
           </div>
         `;
       }
@@ -590,12 +623,45 @@
           return `<div class="stack"><p class="muted">Listen and choose the meaning.</p><button class="button primary" type="button" data-pronounce-current="true">Play word</button><div class="quiz-options">${question.options.map(renderOption).join('')}</div></div>`;
         }
         if (question.mode === 'typing') {
-          return `<form class="typing-form" id="typingForm"><p class="muted">Type the Vietnamese meaning for:</p><h3>${escapeHtml(question.prompt)}</h3><input class="search" id="typingAnswer" type="text" autocomplete="off" placeholder="Your answer" /><button class="button primary" type="submit">Submit answer</button></form>`;
+          if (state.currentAnswer) {
+            const isCorrect = state.currentAnswer.isCorrect;
+            const inputClass = isCorrect ? 'search success-input' : 'search danger-input';
+            return `
+              <form class="typing-form" id="typingForm">
+                <p class="muted">Type the English word for:</p>
+                <h3>${escapeHtml(question.prompt)}</h3>
+                <input class="${inputClass}" id="typingAnswer" type="text" autocomplete="off" value="${escapeHtml(state.currentAnswer.text)}" disabled>
+                <div class="row">
+                  <button class="button primary" type="submit" autofocus>Next question</button>
+                </div>
+              </form>
+            `;
+          }
+          return `
+            <form class="typing-form" id="typingForm">
+              <p class="muted">Type the English word for:</p>
+              <h3>${escapeHtml(question.prompt)}</h3>
+              <input class="search" id="typingAnswer" type="text" autocomplete="off" placeholder="Your answer" autofocus>
+              <div class="row">
+                <button class="button primary" type="submit">Submit answer</button>
+                <button class="button" type="button" id="quizHint">Hint</button>
+              </div>
+              <p id="hintText" class="muted small hidden" style="margin-top: 0.5rem;"></p>
+            </form>
+          `;
         }
         return `<div class="stack"><p class="muted">Choose the correct answer for:</p><h3>${escapeHtml(question.prompt)}</h3><div class="quiz-options">${question.options.map(renderOption).join('')}</div></div>`;
       }
 
       function renderOption(option) {
+        if (state.currentAnswer) {
+          const isSelected = option === state.currentAnswer.text;
+          const isCorrect = option === state.currentQuestion.answer;
+          let className = 'button option';
+          if (isCorrect) className += ' success';
+          else if (isSelected) className += ' danger';
+          return `<button class="${className}" type="button" disabled>${escapeHtml(option)}</button>`;
+        }
         return `<button class="button option" type="button" data-answer="${escapeHtml(option)}">${escapeHtml(option)}</button>`;
       }
 
@@ -649,7 +715,21 @@
         if (target.dataset.answer) answerQuestion(target.dataset.answer);
         if (target.id === 'themeButton') { state.theme = state.theme === 'dark' ? 'light' : 'dark'; saveState(); }
         if (target.id === 'startQuiz') startQuiz(state.quizMode);
-        if (target.id === 'resetQuiz') { state.currentQuestion = null; state.quizResults = []; state.quizStartedAt = null; state.feedback = ''; }
+        if (target.id === 'resetQuiz') { state.currentQuestion = null; state.currentAnswer = null; state.quizResults = []; state.quizStartedAt = null; state.feedback = ''; }
+        if (target.id === 'nextQuestion') {
+          nextQuestion();
+          return;
+        }
+        if (target.id === 'quizHint') {
+          const hintText = document.getElementById('hintText');
+          if (hintText && state.currentQuestion) {
+            hintText.textContent = getQuizHint(state.currentQuestion.answer);
+            hintText.classList.remove('hidden');
+          }
+          const input = document.getElementById('typingAnswer');
+          if (input) input.focus();
+          return;
+        }
         if (target.id === 'resetSavedState') {
           if (window.confirm('Reset all saved progress and reload fresh data?')) resetSavedState();
           return;
@@ -672,12 +752,24 @@
       document.addEventListener('submit', (event) => {
         if (event.target.id !== 'typingForm') return;
         event.preventDefault();
-        answerQuestion(document.getElementById('typingAnswer').value);
+        if (state.currentAnswer) {
+          nextQuestion();
+        } else {
+          answerQuestion(document.getElementById('typingAnswer').value);
+        }
       });
 
       initializeApp();
       setInterval(() => {
-        if (state.page === 'quiz' && state.quizStartedAt) renderQuiz();
+        if (state.page === 'quiz' && state.quizStartedAt) {
+          const elapsedSpan = document.getElementById('quizElapsed');
+          if (elapsedSpan) {
+            const quizStats = getQuizStats();
+            elapsedSpan.textContent = quizStats.elapsed;
+          } else {
+            renderQuiz();
+          }
+        }
       }, 1000);
     </script>
   </body>
