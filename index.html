@@ -97,6 +97,10 @@
       .danger-input, .danger-input:disabled { opacity: 1 !important; border: 1.5px solid var(--danger) !important; background: rgba(251, 113, 133, 0.15) !important; color: var(--text) !important; -webkit-text-fill-color: var(--text) !important; }
       .success-text { color: var(--success); font-weight: bold; }
       .danger-text { color: var(--danger); font-weight: bold; }
+      .char-correct { color: var(--success); font-weight: bold; }
+      .char-incorrect { color: var(--danger); font-weight: bold; text-decoration: line-through; }
+      .char-missing { color: var(--muted); font-weight: bold; border-bottom: 2px dashed var(--danger); padding: 0 1px; }
+      .diff-container { font-family: monospace; font-size: 1.15rem; letter-spacing: 1.5px; }
       .empty { padding: 2rem 1rem; text-align: center; }
       .nav { position: fixed; left: 50%; bottom: max(0.85rem, env(safe-area-inset-bottom)); z-index: 10; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; width: min(calc(100% - 2rem), 720px); padding: 0.55rem; border: 1px solid var(--line); border-radius: 1.35rem; background: var(--panel); box-shadow: var(--shadow); transform: translateX(-50%); backdrop-filter: blur(20px); }
       @media (max-width: 520px) { .app { padding-inline: 0.8rem; } .header { margin-inline: -0.8rem; padding-inline: 0.8rem; } .stats-grid, .tabs.four { grid-template-columns: 1fr 1fr; } .word-title { font-size: 1.7rem; } .pill { display: none; } }
@@ -438,6 +442,41 @@
         return `Hint: ${firstTwo} ${underscores} (${trimmed.length} letters)`;
       }
 
+      function diffAnswer(typed, correct) {
+        const m = typed.length;
+        const n = correct.length;
+        const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+        
+        for (let i = 1; i <= m; i++) {
+          for (let j = 1; j <= n; j++) {
+            if (typed[i - 1].toLowerCase() === correct[j - 1].toLowerCase()) {
+              dp[i][j] = dp[i - 1][j - 1] + 1;
+            } else {
+              dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+            }
+          }
+        }
+        
+        let i = m, j = n;
+        const result = [];
+        
+        while (i > 0 || j > 0) {
+          if (i > 0 && j > 0 && typed[i - 1].toLowerCase() === correct[j - 1].toLowerCase()) {
+            result.push(`<span class="char-correct">${escapeHtml(typed[i - 1])}</span>`);
+            i--;
+            j--;
+          } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+            result.push(`<span class="char-missing">${escapeHtml(correct[j - 1])}</span>`);
+            j--;
+          } else {
+            result.push(`<span class="char-incorrect">${escapeHtml(typed[i - 1])}</span>`);
+            i--;
+          }
+        }
+        
+        return result.reverse().join('');
+      }
+
       function createQuizQuestion(mode) {
         const topicWords = getTopicWords();
         const knownOrLearning = topicWords.filter((word) => word.status !== 'new');
@@ -466,9 +505,25 @@
         const correct = answer.trim().toLowerCase() === state.currentQuestion.answer.trim().toLowerCase();
         state.quizResults.push({ questionId: state.currentQuestion.id, selectedAnswer: answer, isCorrect: correct, answeredAt: Date.now() });
         state.currentAnswer = { text: answer, isCorrect: correct };
-        state.feedback = correct 
-          ? `<span class="success-text">✓ Correct!</span>` 
-          : `<span class="danger-text">✗ Incorrect. Correct answer: <strong>${escapeHtml(state.currentQuestion.answer)}</strong></span>`;
+        
+        if (correct) {
+          state.feedback = `<span class="success-text">✓ Correct!</span>`;
+        } else if (state.quizMode === 'typing') {
+          state.feedback = `
+            <div class="danger-text" style="text-align: left;">
+              <span style="font-size: 1.1rem; display: block; margin-bottom: 0.4rem;">✗ Incorrect.</span>
+              <div style="margin-bottom: 0.3rem; font-size: 0.95rem; color: var(--text);">
+                Your answer: <span class="diff-container">${diffAnswer(answer, state.currentQuestion.answer)}</span>
+              </div>
+              <div style="font-size: 0.95rem; color: var(--muted);">
+                Correct answer: <strong style="color: var(--success);">${escapeHtml(state.currentQuestion.answer)}</strong>
+              </div>
+            </div>
+          `;
+        } else {
+          state.feedback = `<span class="danger-text">✗ Incorrect. Correct answer: <strong>${escapeHtml(state.currentQuestion.answer)}</strong></span>`;
+        }
+        
         render();
       }
 
