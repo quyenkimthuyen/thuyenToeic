@@ -157,6 +157,7 @@
         revealed: {},
         wordOrderIds: [],
       };
+      window.state = state;
 
       function escapeHtml(value) {
         return String(value ?? '')
@@ -751,6 +752,7 @@
       document.addEventListener('click', (event) => {
         const target = event.target.closest('button');
         if (!target) return;
+        if (target.type === 'submit') return;
         if (target.dataset.page) state.page = target.dataset.page;
         if (target.dataset.filter) { state.filter = target.dataset.filter; saveState(); }
         if (target.dataset.mode) startQuiz(target.dataset.mode);
@@ -791,6 +793,8 @@
         }
         render();
       });
+
+
 
       document.addEventListener('change', async (event) => {
         if (event.target.id === 'topicSelect') {

@@ -1,9 +1,13 @@
 {
-  "name": "lexirise-standalone-html",
-  "private": true,
-  "version": "0.1.0",
-  "type": "module",
+  "name": "toeic-vocab-app",
+  "version": "1.0.0",
+  "description": "Frontend‑only vocabulary learning app",
   "scripts": {
-    "start": "python3 -m http.server 8000"
+    "dev": "npx -y http-server -c-1 -p 8080",
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.45.0",
+    "http-server": "^14.1.1"
   }
 }
