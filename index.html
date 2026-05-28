@@ -765,7 +765,7 @@
           <div class="panel stack">
             ${question ? renderQuestion(question) : '<div class="empty"><h3>Ready to practice?</h3><p class="muted">Choose a mode and start a quiz.</p></div>'}
             ${state.feedback ? `<p class="feedback">${state.feedback}</p>` : ''}
-            ${state.currentAnswer && question && question.mode !== 'typing' ? '<button class="button primary" type="button" id="nextQuestion">Next question</button>' : ''}
+            ${state.currentAnswer && !state.currentAnswer.isCorrect && question && question.mode !== 'typing' ? '<button class="button primary" type="button" id="nextQuestion">Next question</button>' : ''}
             <button class="button" type="button" id="startQuiz">${question ? 'Restart quiz' : 'Start quiz'}</button>
           </div>
         `;
