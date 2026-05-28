@@ -765,7 +765,6 @@
           <div class="panel stack">
             ${question ? renderQuestion(question) : '<div class="empty"><h3>Ready to practice?</h3><p class="muted">Choose a mode and start a quiz.</p></div>'}
             ${state.feedback ? `<p class="feedback">${state.feedback}</p>` : ''}
-            ${state.currentAnswer && !state.currentAnswer.isCorrect && question && question.mode !== 'typing' ? '<button class="button primary" type="button" id="nextQuestion">Next question</button>' : ''}
             <button class="button" type="button" id="startQuiz">${question ? 'Restart quiz' : 'Start quiz'}</button>
           </div>
         `;
@@ -817,6 +816,10 @@
           let className = 'button option';
           if (isCorrect) className += ' success';
           else if (isSelected) className += ' danger';
+          
+          if (isCorrect && !state.currentAnswer.isCorrect) {
+            return `<button class="${className}" type="button" data-correct-next="true">${escapeHtml(option)}</button>`;
+          }
           return `<button class="${className}" type="button" disabled>${escapeHtml(option)}</button>`;
         }
         return `<button class="button option" type="button" data-answer="${escapeHtml(option)}">${escapeHtml(option)}</button>`;
@@ -905,6 +908,10 @@
           state.words = refillLearningQueue(state.words.map((word) => word.id === target.dataset.remembered ? applyReviewOutcome(word, 'remembered') : word));
           reshuffleWordOrder();
           saveState();
+        }
+        if (target.dataset.correctNext) {
+          nextQuestion();
+          return;
         }
         if (target.dataset.answer) answerQuestion(target.dataset.answer);
         if (target.id === 'themeButton') { state.theme = state.theme === 'dark' ? 'light' : 'dark'; saveState(); }
