@@ -103,6 +103,15 @@
       .diff-container { font-family: monospace; font-size: 1.15rem; letter-spacing: 1.5px; }
       .empty { padding: 2rem 1rem; text-align: center; }
       .nav { position: fixed; left: 50%; bottom: max(0.85rem, env(safe-area-inset-bottom)); z-index: 10; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; width: min(calc(100% - 2rem), 720px); padding: 0.55rem; border: 1px solid var(--line); border-radius: 1.35rem; background: var(--panel); box-shadow: var(--shadow); transform: translateX(-50%); backdrop-filter: blur(20px); }
+      .action-btn { display: inline-flex; align-items: center; justify-content: center; width: 2.6rem; height: 2.6rem; border-radius: 50%; border: 1px solid var(--line); background: var(--panel-strong); color: var(--text); transition: transform 0.15s ease, background 0.15s ease; outline: none; }
+      .action-btn:hover { transform: translateY(-1px); }
+      .action-btn.play { color: var(--primary); border-color: var(--primary); background: rgba(20, 184, 166, 0.08); }
+      .action-btn.play:hover { background: rgba(20, 184, 166, 0.18); }
+      .action-btn.forgot { color: var(--danger); border-color: var(--danger); background: rgba(251, 113, 133, 0.08); }
+      .action-btn.forgot:hover { background: rgba(251, 113, 133, 0.18); }
+      .action-btn.remembered { color: var(--success); border-color: var(--success); background: rgba(34, 197, 94, 0.08); }
+      .action-btn.remembered:hover { background: rgba(34, 197, 94, 0.18); }
+      .action-btn svg { pointer-events: none; }
       @media (max-width: 520px) { .app { padding-inline: 0.8rem; } .header { margin-inline: -0.8rem; padding-inline: 0.8rem; } .stats-grid, .tabs.four { grid-template-columns: 1fr 1fr; } .word-title { font-size: 1.7rem; } .pill { display: none; } }
     </style>
   </head>
@@ -655,24 +664,50 @@
       }
 
       function renderWordCard(word) {
-        const revealed = state.revealed[word.id];
+        const isKnownFilter = state.filter === 'known';
+        const revealed = !isKnownFilter || !!state.revealed[word.id];
         return `
           <article class="panel stack">
             <div class="row between">
               <span class="badge">${escapeHtml(word.topic)} - ${escapeHtml(word.status)} - level ${word.reviewLevel || 0}${word.audio_us ? ' - audio' : ''}</span>
             </div>
             <div>
-              <div class="word-title">${escapeHtml(word.word)}</div>
-              <p class="muted">${escapeHtml(word.ipa_us || '')}</p>
+              <div class="row between" style="width: 100%; gap: 1rem; align-items: center;">
+                <div class="word-title" style="line-height: 1.1;">${escapeHtml(word.word)}</div>
+                <div class="row" style="margin-left: auto; align-items: center;">
+                  <button class="action-btn play" type="button" data-pronounce="${escapeHtml(word.id)}" aria-label="Pronounce ${escapeHtml(word.word)}" title="Pronounce">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                      <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                      <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                    </svg>
+                  </button>
+                  ${word.status !== 'learning' ? `
+                    <button class="action-btn forgot" type="button" data-forgot="${escapeHtml(word.id)}" aria-label="Forgot" title="Forgot">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </button>
+                  ` : ''}
+                  ${word.status !== 'known' ? `
+                    <button class="action-btn remembered" type="button" data-remembered="${escapeHtml(word.id)}" aria-label="Remembered" title="Remembered">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </button>
+                  ` : ''}
+                </div>
+              </div>
+              <p class="muted" style="margin-top: 0.35rem;">${escapeHtml(word.ipa_us || '')}</p>
             </div>
             <div>${revealed ? `<p class="meaning">${escapeHtml(word.meaning_vi)}</p>` : '<p class="muted">Meaning is hidden</p>'}</div>
             ${word.example ? `<p class="example">${escapeHtml(word.example)}</p>` : ''}
-            <div class="row">
-              <button class="button" type="button" data-reveal="${escapeHtml(word.id)}">${revealed ? 'Hide meaning' : 'Reveal meaning'}</button>
-              <button class="icon-button" type="button" data-pronounce="${escapeHtml(word.id)}" aria-label="Pronounce ${escapeHtml(word.word)}" title="Pronounce">Play</button>
-              ${word.status !== 'learning' ? `<button class="button danger" type="button" data-forgot="${escapeHtml(word.id)}">Forgot</button>` : ''}
-              ${word.status !== 'known' ? `<button class="button success" type="button" data-remembered="${escapeHtml(word.id)}">Remembered</button>` : ''}
-            </div>
+            ${isKnownFilter ? `
+              <div class="row">
+                <button class="button" type="button" data-reveal="${escapeHtml(word.id)}">${state.revealed[word.id] ? 'Hide meaning' : 'Reveal meaning'}</button>
+              </div>
+            ` : ''}
           </article>
         `;
       }
