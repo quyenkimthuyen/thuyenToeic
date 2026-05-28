@@ -105,10 +105,13 @@ Quiz modes:
 
 Quiz behavior:
 
-- Generates random questions from learning or known words when possible.
-- Uses the selected topic as the quiz question pool.
-- Uses four multiple-choice answers for non-typing modes.
+- Shows the selected quiz topic on the quiz screen and lets the user change it before starting.
+- Builds each test from up to 20 unique words in the selected topic, or all available words when the topic has fewer than 20.
+- Uses multiple-choice answers for non-typing modes, with up to four choices depending on the topic size.
 - Compares answers case-insensitively after trimming whitespace.
+- Automatically advances to the next question after a correct answer.
+- Automatically submits typing answers when the typed text matches the correct English word.
+- Automatically plays the word audio or speech fallback when a listening question first appears.
 - Tracks total answers, correct answers, streak, elapsed time, and accuracy.
 - Supports quiz reset.
 
