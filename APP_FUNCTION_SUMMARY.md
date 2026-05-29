@@ -17,23 +17,13 @@ npm start
 
 ## Topic JSON Files
 
-Words are stored in `data/`, with one JSON file per topic. The app automatically loads the known topic files from that folder, and can discover extra `.json` files when the static server exposes directory listing.
+Words are stored in `data/` as consolidated source files. The Stats page settings let the user choose which source file to load.
 
-The topic name is the filename without `.json`, so `data/toeic-airport.json` becomes topic `toeic-airport`.
+Current source files:
 
-Current topics:
-
-- `toeic-airport`
-- `toeic-all`
-- `toeic-banking`
-- `toeic-business`
-- `toeic-finance`
-- `toeic-hotel`
-- `toeic-marketing`
-- `toeic-meetings`
-- `toeic-office`
-- `toeic-technology`
-- `toeic-travel`
+- `data/all-topics-toeic.json`
+- `data/all-topics-grade9.json`
+- `data/all-topics-grade4.json`
 
 Topic file example:
 
@@ -60,14 +50,14 @@ Important fields:
 
 - `word`: English word.
 - `meaning_vi`: Vietnamese meaning.
-- `topic`: learning topic; if omitted, the app uses the JSON filename.
+- `topic`: learning topic; if omitted, the app uses the source group name.
 - `audio_us`: optional audio path or internet URL, such as `audio/word.mp3` or a public `.mp3` URL.
 - `example`: optional example sentence.
 - `ipa_us`: optional American pronunciation text.
 
 Put local audio files in the `audio/` folder or use public internet audio URLs in topic JSON files under `data/`. If `audio_us` is empty or cannot play, the app falls back to browser text-to-speech.
 
-To add more topics, create another JSON file in `data/`.
+To add another source, add the JSON file in `data/` and register it in the app's `DATA_SOURCES` list.
 
 ## Main Functions
 
@@ -75,6 +65,7 @@ To add more topics, create another JSON file in `data/`.
 
 - Shows a vocabulary learning screen.
 - Keeps JSON source/import instructions out of the main learning GUI.
+- Loads words from the selected source file.
 - Lets the user filter vocabulary by topic.
 - Limits the active learning queue to 10 words.
 - Shows words in a stable randomized order instead of JSON order.
@@ -106,7 +97,7 @@ Quiz modes:
 Quiz behavior:
 
 - Shows the selected quiz topic on the quiz screen and lets the user change it before starting.
-- Builds each test from up to 20 unique words in the selected topic, or all available words when the topic has fewer than 20.
+- Builds each test from the configured number of unique words in the selected topic, or all available words when the topic has fewer words.
 - Uses multiple-choice answers for non-typing modes, with up to four choices depending on the topic size.
 - Compares answers case-insensitively after trimming whitespace.
 - Automatically advances to the next question after a correct answer.
@@ -125,13 +116,16 @@ Quiz behavior:
 - Shows recently known words.
 - Shows the current learning queue.
 - Shows stats for the selected topic or all topics.
+- Lets the user choose the vocabulary source: TOEIC, Grade 9, or Grade 4.
+- Lets the user set the number of words used in each quiz.
+- Saves source and quiz-size preferences locally.
 - Provides a reset button to clear saved browser progress and reload fresh data from `data/`.
 
 ## Data And Storage
 
 Editable source data:
 
-- one JSON file per topic in `data/`
+- consolidated JSON source files in `data/`
 
 Optional audio files:
 
@@ -152,6 +146,8 @@ Persisted data:
 - selected topic filter
 - search query
 - selected theme
+- selected vocabulary source
+- quiz word count
 - selected quiz mode
 
 Not persisted:
@@ -164,7 +160,7 @@ Not persisted:
 ## Current File Structure
 
 - `index.html`: standalone app UI and logic.
-- `data/*.json`: topic vocabulary files.
+- `data/*.json`: source vocabulary files.
 - `data/README.md`: topic data instructions.
 - `audio/`: optional local audio files.
 - `APP_FUNCTION_SUMMARY.md`: this function summary.
@@ -174,7 +170,7 @@ Not persisted:
 ## Limitations
 
 - Browsers do not allow reliable JSON loading from `file://`; use a simple static server.
-- Extra topic files beyond the known checked-in JSON files require a server that exposes directory listing, or the file must be added to the app's fallback topic list.
+- Extra source files must be added to the app's `DATA_SOURCES` list.
 - There is no backend sync between devices.
 - Progress is stored only in the current browser unless exported.
 - Audio playback requires valid local paths or public internet URLs in `audio_us`.

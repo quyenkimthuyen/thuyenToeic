@@ -48,7 +48,7 @@
           var(--bg);
         font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
-      button, input { font: inherit; }
+      button, input, select { font: inherit; }
       button { cursor: pointer; }
       h1, h2, h3, p { margin: 0; }
       h1 { font-size: 1.15rem; line-height: 1.2; }
@@ -78,6 +78,7 @@
       .search { width: 100%; min-height: 2.9rem; border: 1px solid var(--line); border-radius: 1rem; padding: 0 1rem; background: var(--panel-strong); color: var(--text); outline: none; }
       .tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.45rem; }
       .tabs.four { grid-template-columns: repeat(4, 1fr); }
+      .settings-grid { display: grid; gap: 1rem; }
       .word-title { font-size: 2rem; font-weight: 800; letter-spacing: -0.04em; }
       .meaning { font-size: 1.2rem; font-weight: 700; color: var(--primary); }
       .example { border-left: 3px solid var(--primary); padding-left: 0.75rem; color: var(--muted); }
@@ -147,9 +148,15 @@
     <script>
       const STORAGE_KEY = 'lexirise-vocabulary-store-v3';
       const LEARNING_LIMIT = 10;
-      const QUIZ_QUESTION_LIMIT = 20;
+      const DEFAULT_QUIZ_QUESTION_LIMIT = 20;
+      const MIN_QUIZ_QUESTION_LIMIT = 1;
+      const MAX_QUIZ_QUESTION_LIMIT = 100;
       const REVIEW_INTERVAL_HOURS = [4, 12, 24, 72, 168, 336, 720];
-      const DATA_TOPIC_FILES = ['all-topics.json'];
+      const DATA_SOURCES = [
+        { name: 'toeic', label: 'TOEIC', file: 'all-topics-toeic.json' },
+        { name: 'grade9', label: 'Grade 9', file: 'all-topics-grade9.json' },
+        { name: 'grade4', label: 'Grade 4', file: 'all-topics-grade4.json' },
+      ];
       let seedWords = [];
 
       const state = {
@@ -159,6 +166,8 @@
         searchQuery: '',
         theme: 'dark',
         page: 'learn',
+        dataSourceName: DATA_SOURCES[0].name,
+        quizQuestionLimit: DEFAULT_QUIZ_QUESTION_LIMIT,
         quizMode: 'meaning',
         currentQuestion: null,
         quizQuestionIds: [],
@@ -220,6 +229,8 @@
           if (savedState.topicFilter) state.topicFilter = savedState.topicFilter;
           if (typeof savedState.searchQuery === 'string') state.searchQuery = savedState.searchQuery;
           if (savedState.theme === 'light' || savedState.theme === 'dark') state.theme = savedState.theme;
+          if (DATA_SOURCES.some((source) => source.name === savedState.dataSourceName)) state.dataSourceName = savedState.dataSourceName;
+          state.quizQuestionLimit = normalizeQuizQuestionLimit(savedState.quizQuestionLimit);
           if (savedState.quizMode) state.quizMode = savedState.quizMode;
           if (Array.isArray(savedState.quizHistory)) state.quizHistory = savedState.quizHistory;
         } catch (error) {
@@ -237,11 +248,39 @@
             topicFilter: state.topicFilter,
             searchQuery: state.searchQuery,
             theme: state.theme,
+            dataSourceName: state.dataSourceName,
+            quizQuestionLimit: state.quizQuestionLimit,
             quizMode: state.quizMode,
             quizHistory: state.quizHistory || [],
           },
           version: 2,
         }));
+      }
+
+      function normalizeQuizQuestionLimit(value) {
+        const parsed = Number.parseInt(value, 10);
+        if (!Number.isFinite(parsed)) return DEFAULT_QUIZ_QUESTION_LIMIT;
+        return Math.max(MIN_QUIZ_QUESTION_LIMIT, Math.min(MAX_QUIZ_QUESTION_LIMIT, parsed));
+      }
+
+      function getDataSource() {
+        return DATA_SOURCES.find((source) => source.name === state.dataSourceName) || DATA_SOURCES[0];
+      }
+
+      function dataToTopicGroups(data) {
+        if (Array.isArray(data)) return data;
+        return Object.entries(data).map(([topic, words]) => ({ topic, words }));
+      }
+
+      function resetQuizState() {
+        state.currentQuestion = null;
+        state.currentAnswer = null;
+        state.quizQuestionIds = [];
+        state.quizQuestionIndex = 0;
+        state.quizResults = [];
+        state.quizStartedAt = null;
+        state.feedback = '';
+        state.lastAutoPlayedListeningQuestionId = null;
       }
 
         function importTopics(topicGroups) {
@@ -259,10 +298,7 @@
           });
           ensureWordOrder();
           if (!getTopics(state.words).includes(state.topicFilter)) state.topicFilter = 'all';
-          state.currentQuestion = null;
-          state.quizQuestionIds = [];
-          state.quizQuestionIndex = 0;
-          state.quizResults = [];
+          resetQuizState();
           state.feedback = `Loaded ${state.words.length} words.`;
           saveState();
           render();
@@ -273,16 +309,14 @@
       async function loadTopicFiles() {
         // If the page is opened via file://, use the bundled in-memory data.
         if (location.protocol === 'file:' && typeof window.embeddedData === 'object') {
-          return Object.entries(window.embeddedData).map(([topic, words]) => ({ topic, words }));
+          return dataToTopicGroups(window.embeddedData);
         }
-        // When served over HTTP (e.g., Live Server), load the consolidated all-topics.json file.
-        const file = DATA_TOPIC_FILES[0];
-        const response = await fetch(`data/${file}`, { cache: 'no-store' });
-        if (!response.ok) throw new Error(`Cannot load data/${file}`);
+        // When served over HTTP (e.g., Live Server), load the selected consolidated source file.
+        const source = getDataSource();
+        const response = await fetch(`data/${source.file}`, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`Cannot load data/${source.file}`);
         const data = await response.json();
-        // Support both array of groups [{topic, words}] or object mapping {topic: words}
-        if (Array.isArray(data)) return data;
-        return Object.entries(data).map(([topic, words]) => ({ topic, words }));
+        return dataToTopicGroups(data);
       }
 
       // Legacy function retained for potential future use; not used when loading consolidated data.
@@ -345,14 +379,12 @@
         state.filter = 'learning';
         state.topicFilter = 'all';
         state.searchQuery = '';
+        state.dataSourceName = DATA_SOURCES[0].name;
+        state.quizQuestionLimit = DEFAULT_QUIZ_QUESTION_LIMIT;
         state.quizMode = 'meaning';
-        state.currentQuestion = null;
-        state.quizQuestionIds = [];
-        state.quizQuestionIndex = 0;
-        state.quizResults = [];
-        state.quizStartedAt = null;
         state.quizHistory = [];
         state.revealed = {};
+        resetQuizState();
         state.feedback = 'Saved state reset.';
         await initializeApp();
       }
@@ -508,7 +540,7 @@
       }
 
       function buildQuizQuestionIds() {
-        return shuffle(getTopicWords()).slice(0, QUIZ_QUESTION_LIMIT).map((word) => word.id);
+        return shuffle(getTopicWords()).slice(0, state.quizQuestionLimit).map((word) => word.id);
       }
 
       function createQuizQuestion(mode) {
@@ -736,7 +768,7 @@
         const question = state.currentQuestion;
         const topics = getTopics();
         const topicWords = getTopicWords();
-        const questionCount = Math.min(topicWords.length, QUIZ_QUESTION_LIMIT);
+        const questionCount = Math.min(topicWords.length, state.quizQuestionLimit);
         document.getElementById('quizPage').innerHTML = `
           <div class="panel stack">
             <div class="row between">
@@ -831,6 +863,7 @@
         const knownWords = topicWords.filter((word) => word.status === 'known').slice(-8).reverse();
         const learningWords = topicWords.filter((word) => word.status === 'learning').slice(0, LEARNING_LIMIT);
         const scheduled = topicWords.filter((word) => word.nextReviewAt).length;
+        const source = getDataSource();
 
         const quizHistoryHtml = (state.quizHistory || []).length
           ? (state.quizHistory).map((quiz) => {
@@ -875,6 +908,25 @@
             <button class="button danger" type="button" id="resetSavedState">Reset saved state</button>
           </div>
           <div class="panel stack">
+            <div>
+              <h2>Settings</h2>
+              <p class="muted small">Choose the vocabulary source and quiz size.</p>
+            </div>
+            <div class="settings-grid">
+              <label class="stack" for="dataSourceSelect">
+                <span class="muted small">Source name</span>
+                <select class="search" id="dataSourceSelect" aria-label="Choose vocabulary source">
+                  ${DATA_SOURCES.map((item) => `<option value="${escapeHtml(item.name)}"${state.dataSourceName === item.name ? ' selected' : ''}>${escapeHtml(item.label)}</option>`).join('')}
+                </select>
+              </label>
+              <label class="stack" for="quizQuestionLimitInput">
+                <span class="muted small">Number of words on quiz</span>
+                <input class="search" id="quizQuestionLimitInput" type="number" min="${MIN_QUIZ_QUESTION_LIMIT}" max="${MAX_QUIZ_QUESTION_LIMIT}" step="1" value="${state.quizQuestionLimit}">
+              </label>
+            </div>
+            <p class="muted small">Current source file: data/${escapeHtml(source.file)}. The next quiz will use up to ${state.quizQuestionLimit} word${state.quizQuestionLimit === 1 ? '' : 's'}.</p>
+          </div>
+          <div class="panel stack">
             <h3>Recent Quizzes (Last 10)</h3>
             <div class="stack" style="gap: 0.65rem;">
               ${quizHistoryHtml}
@@ -916,7 +968,7 @@
         if (target.dataset.answer) answerQuestion(target.dataset.answer);
         if (target.id === 'themeButton') { state.theme = state.theme === 'dark' ? 'light' : 'dark'; saveState(); }
         if (target.id === 'startQuiz') startQuiz(state.quizMode);
-        if (target.id === 'resetQuiz') { state.currentQuestion = null; state.currentAnswer = null; state.quizQuestionIds = []; state.quizQuestionIndex = 0; state.quizResults = []; state.quizStartedAt = null; state.feedback = ''; state.lastAutoPlayedListeningQuestionId = null; }
+        if (target.id === 'resetQuiz') resetQuizState();
         if (target.id === 'nextQuestion') {
           nextQuestion();
           return;
@@ -944,14 +996,32 @@
         if (event.target.id === 'topicSelect' || event.target.id === 'quizTopicSelect') {
           state.topicFilter = event.target.value;
           state.filter = 'all';
-          state.currentQuestion = null;
-          state.currentAnswer = null;
-          state.quizQuestionIds = [];
-          state.quizQuestionIndex = 0;
-          state.quizResults = [];
-          state.quizStartedAt = null;
-          state.feedback = '';
-          state.lastAutoPlayedListeningQuestionId = null;
+          resetQuizState();
+          saveState();
+          render();
+          return;
+        }
+        if (event.target.id === 'dataSourceSelect') {
+          const nextSource = event.target.value;
+          if (!DATA_SOURCES.some((source) => source.name === nextSource)) return;
+          state.dataSourceName = nextSource;
+          state.topicFilter = 'all';
+          state.searchQuery = '';
+          state.filter = 'learning';
+          resetQuizState();
+          saveState();
+          try {
+            importTopics(await loadTopicFiles());
+          } catch (error) {
+            state.feedback = 'Cannot load the selected source file from data/. Please check the file exists and use Live Server.';
+            console.warn('Cannot load selected source data.', error);
+            render();
+          }
+          return;
+        }
+        if (event.target.id === 'quizQuestionLimitInput') {
+          state.quizQuestionLimit = normalizeQuizQuestionLimit(event.target.value);
+          resetQuizState();
           saveState();
           render();
           return;
