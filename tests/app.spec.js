@@ -13,9 +13,9 @@ test.describe('Toeic Vocab App UI', () => {
 
   test('Navigation works', async ({ page }) => {
     await expect(page.locator('.nav-button[data-page="learn"]').first()).toBeVisible();
-    await page.click('.nav-button[data-page="quiz"]').then(() => {});
+    await page.click('.nav-button[data-page="quiz"]').then(() => { });
     await expect(page.locator('#quizPage')).not.toHaveClass(/hidden/);
-    await page.click('.nav-button[data-page="stats"]').then(() => {});
+    await page.click('.nav-button[data-page="stats"]').then(() => { });
     await expect(page.locator('#statsPage')).not.toHaveClass(/hidden/);
   });
 
